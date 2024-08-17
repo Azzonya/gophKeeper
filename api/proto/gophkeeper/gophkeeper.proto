@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package gophkeeper;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "/gophkeeper";
+
+service GophKeeperService {
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc GetData (GetDataRequest) returns (GetDataResponse);
+  rpc CreateData (CreateDataRequest) returns (CreateDataResponse);
+  rpc UpdateData (UpdateDataRequest) returns (UpdateDataResponse);
+  rpc DeleteData (DeleteDataRequest) returns (DeleteDataResponse);
+  rpc SyncData (SyncDataRequest) returns (SyncDataResponse);
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string message = 1;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message GetDataRequest {
+  string id = 1;
+  string user_id = 2;
+  string type = 3;
+  string URL = 4;
+}
+
+message GetDataResponse {
+  repeated DataItem data = 1;
+}
+
+message CreateDataRequest {
+  DataItem data = 1;
+}
+
+message CreateDataResponse {
+  string message = 1;
+}
+
+message UpdateDataRequest {
+  DataItem data = 1;
+}
+
+message UpdateDataResponse {
+  string message = 1;
+}
+
+message DeleteDataRequest {
+  string id = 1;
+}
+
+message DeleteDataResponse {
+  string message = 1;
+}
+
+message SyncDataRequest {
+  repeated DataItem data = 1;
+}
+
+message SyncDataResponse {
+  repeated DataItem data = 1;
+}
+
+message DataItem {
+  string id = 1;
+  string type = 2;
+  bytes data = 3;
+  string meta = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
