@@ -82,7 +82,6 @@ func (a *App) Init() {
 	// grpc server
 	{
 		var opts []grpc.ServerOption
-
 		if conf.Conf.EnableTLS {
 			tlsConfig, err := loadTLSCredentials()
 			if err != nil {
