@@ -1,6 +1,6 @@
 module gophKeeper
 
-go 1.21
+go 1.22
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
