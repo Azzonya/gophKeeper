@@ -13,7 +13,7 @@ var Conf = struct {
 	ServerAddress  string `env:"server_address"`
 	RedisAddress   string `env:"redis_address" envDefault:"localhost:6379"`
 	RedisPassword  string `env:"redis_password" envDefault:"password"`
-	RedisDb        int    `env:"redis_db" envDefault:"0"`
+	RedisDB        int    `env:"redis_db" envDefault:"0"`
 	CAFile         string `env:"CA_FILE" envDefault:"cert/ca-cert.pem"`
 	ClientCertFile string `env:"client_cert_file" envDefault:"cert/client-cert.pem"`
 	ClientKeyFile  string `env:"client_key_file" envDefault:"cert/client-key.pem"`

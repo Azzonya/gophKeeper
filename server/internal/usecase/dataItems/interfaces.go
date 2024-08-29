@@ -1,10 +1,10 @@
-// Package data_items defines the service interface for managing data items,
+// Package dataItems defines the service interface for managing data items,
 // including operations for listing, creating, retrieving, updating, and deleting data items.
-package data_items
+package dataItems
 
 import (
 	"context"
-	"gophKeeper/server/internal/domain/data_items/model"
+	"gophKeeper/server/internal/domain/dataItems/model"
 )
 
 // DataItemsServiceI defines the interface for the data items service,

@@ -1,11 +1,11 @@
-// Package data_items implements the use case logic for managing data items,
+// Package dataItems implements the use case logic for managing data items,
 // coordinating operations like retrieval, creation, updating, and deletion
 // through the service layer.
-package data_items
+package dataItems
 
 import (
 	"context"
-	"gophKeeper/server/internal/domain/data_items/model"
+	"gophKeeper/server/internal/domain/dataItems/model"
 )
 
 // Usecase provides the business logic for managing data items,

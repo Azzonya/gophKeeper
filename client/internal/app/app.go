@@ -56,7 +56,7 @@ func (a *App) Init() {
 		a.redisClient = redis.NewClient(&redis.Options{
 			Addr:     conf.Conf.RedisAddress,
 			Password: conf.Conf.RedisPassword,
-			DB:       conf.Conf.RedisDb,
+			DB:       conf.Conf.RedisDB,
 		})
 
 		err = a.redisClient.Set(context.Background(), "key", "value", 0).Err()

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"gophKeeper/server/internal/domain/data_items/model"
+	"gophKeeper/server/internal/domain/dataItems/model"
 	"io"
 	"log"
 	"path/filepath"

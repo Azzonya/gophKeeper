@@ -8,7 +8,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"gophKeeper/server/internal/domain/data_items/model"
+	"gophKeeper/server/internal/domain/dataItems/model"
 	"gophKeeper/server/internal/errs"
 )
 
@@ -34,7 +34,7 @@ func (r *Repo) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bool,
 
 	var result model.Main
 
-	queryBuilder := squirrel.Select("*").From("data_items")
+	queryBuilder := squirrel.Select("*").From("dataItems")
 
 	if len(pars.ID) != 0 {
 		queryBuilder = queryBuilder.Where(squirrel.Eq{"id": pars.ID})
@@ -72,7 +72,7 @@ func (r *Repo) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bool,
 func (r *Repo) List(ctx context.Context, pars *model.ListPars) ([]*model.Main, int64, error) {
 	queryBuilder := squirrel.
 		Select("id", "user_id", "type", "data", "created_at", "updated_at").
-		From("data_items")
+		From("dataItems")
 
 	if pars.ID != nil {
 		queryBuilder = queryBuilder.Where(squirrel.Eq{"id": pars.ID})
@@ -142,7 +142,7 @@ func (r *Repo) List(ctx context.Context, pars *model.ListPars) ([]*model.Main, i
 // Create inserts a new data item into the database based on the provided Edit object,
 // returning the ID of the newly created item and any error encountered.
 func (r *Repo) Create(ctx context.Context, obj *model.Edit) error {
-	insert := squirrel.Insert("data_items").
+	insert := squirrel.Insert("dataItems").
 		Columns("id", "user_id", "type", "data", "meta").
 		Values(obj.ID, obj.UserID, obj.Type, obj.Data, obj.Meta).
 		PlaceholderFormat(squirrel.Dollar)
@@ -166,7 +166,7 @@ func (r *Repo) Update(ctx context.Context, pars *model.GetPars, obj *model.Edit)
 		return errs.InvalidInput
 	}
 
-	queryBuilder := squirrel.Update("data_items")
+	queryBuilder := squirrel.Update("dataItems")
 
 	if obj.UserID != nil {
 		queryBuilder = queryBuilder.Set("user_id", obj.UserID)
@@ -216,7 +216,7 @@ func (r *Repo) Delete(ctx context.Context, pars *model.GetPars) error {
 		return errs.InvalidInput
 	}
 
-	queryBuilder := squirrel.Delete("data_items")
+	queryBuilder := squirrel.Delete("dataItems")
 
 	queryBuilder = queryBuilder.Where(squirrel.Eq{"id": pars.ID})
 

@@ -9,9 +9,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"gophKeeper/server/internal/domain/data_items/model"
-	dataItemsRepoPgP "gophKeeper/server/internal/domain/data_items/repo/pg"
-	dataItemsRepoS3P "gophKeeper/server/internal/domain/data_items/repo/s3"
+	"gophKeeper/server/internal/domain/dataItems/model"
+	dataItemsRepoPgP "gophKeeper/server/internal/domain/dataItems/repo/pg"
+	dataItemsRepoS3P "gophKeeper/server/internal/domain/dataItems/repo/s3"
 	"log"
 	"reflect"
 	"testing"
@@ -144,6 +144,9 @@ func TestNew(t *testing.T) {
 
 	dataItemsPgRepo := dataItemsRepoPgP.New(pgpool)
 	dataItemsS3Repo, err := dataItemsRepoS3P.NewS3Repo(context.Background(), endpoint, accessKey, secretKey, bucketName)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	type args struct {
 		repoDB RepoDBI
