@@ -6,6 +6,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file" // Импортируем драйвер для работы с файлами
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -16,8 +17,6 @@ import (
 	"reflect"
 	"testing"
 )
-
-const TestUserID = "999"
 
 func getPgPoolTestContainer() (*pgxpool.Pool, error) {
 	ctx := context.Background()
@@ -179,18 +178,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestService_Create(t *testing.T) {
-	pgpool, err := getPgPoolTestContainer()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	endpoint, accessKey, secretKey, bucketName, err := setupMinio(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dataItemsPgRepo := dataItemsRepoPgP.New(pgpool)
-	dataItemsS3Repo, err := dataItemsRepoS3P.NewS3Repo(context.Background(), endpoint, accessKey, secretKey, bucketName)
+	dataItemsPgRepo, dataItemsS3Repo, err := testRepos()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,6 +213,7 @@ func TestService_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				obj: &model.Edit{
+					ID:     uuid.New().String(),
 					UserID: &testUserID,
 					Type:   &bankCardType,
 					Data:   &data,
@@ -241,6 +230,7 @@ func TestService_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				obj: &model.Edit{
+					ID:     uuid.New().String(),
 					UserID: &testUserID,
 					Type:   &credentialsType,
 					Data:   &data,
@@ -257,6 +247,7 @@ func TestService_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				obj: &model.Edit{
+					ID:     uuid.New().String(),
 					UserID: &testUserID,
 					Type:   &binaryType,
 					Data:   &data,
@@ -274,6 +265,7 @@ func TestService_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				obj: &model.Edit{
+					ID:     uuid.New().String(),
 					UserID: &testUserID,
 					Type:   &binaryType,
 					Data:   &data,
@@ -297,116 +289,12 @@ func TestService_Create(t *testing.T) {
 }
 
 func TestService_Delete(t *testing.T) {
-	type fields struct {
-		repoDB RepoDBI
-		repoS3 RepoS3
+	dataItemsPgRepo, dataItemsS3Repo, err := testRepos()
+	if err != nil {
+		t.Fatal(err)
 	}
-	type args struct {
-		ctx  context.Context
-		pars *model.GetPars
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Service{
-				repoDB: tt.fields.repoDB,
-				repoS3: tt.fields.repoS3,
-			}
-			if err := s.Delete(tt.args.ctx, tt.args.pars); (err != nil) != tt.wantErr {
-				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
 
-func TestService_Get(t *testing.T) {
-	type fields struct {
-		repoDB RepoDBI
-		repoS3 RepoS3
-	}
-	type args struct {
-		ctx  context.Context
-		pars *model.GetPars
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *model.Main
-		want1   bool
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Service{
-				repoDB: tt.fields.repoDB,
-				repoS3: tt.fields.repoS3,
-			}
-			got, got1, err := s.Get(tt.args.ctx, tt.args.pars)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Get() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("Get() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestService_List(t *testing.T) {
-	type fields struct {
-		repoDB RepoDBI
-		repoS3 RepoS3
-	}
-	type args struct {
-		ctx  context.Context
-		pars *model.ListPars
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    []*model.Main
-		want1   int64
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &Service{
-				repoDB: tt.fields.repoDB,
-				repoS3: tt.fields.repoS3,
-			}
-			got, got1, err := s.List(tt.args.ctx, tt.args.pars)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("List() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("List() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
-func TestService_Update(t *testing.T) {
+	testModel := testModelEdit()
 	type fields struct {
 		repoDB RepoDBI
 		repoS3 RepoS3
@@ -422,7 +310,21 @@ func TestService_Update(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Delete new data items service",
+			fields: fields{
+				repoDB: dataItemsPgRepo,
+				repoS3: dataItemsS3Repo,
+			},
+			args: args{
+				ctx: context.Background(),
+				pars: &model.GetPars{
+					ID: testModel.ID,
+				},
+				obj: testModel,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -430,9 +332,243 @@ func TestService_Update(t *testing.T) {
 				repoDB: tt.fields.repoDB,
 				repoS3: tt.fields.repoS3,
 			}
+
+			if err := s.Create(tt.args.ctx, tt.args.obj); (err != nil) != tt.wantErr {
+				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if err = s.Delete(tt.args.ctx, tt.args.pars); (err != nil) != tt.wantErr {
+				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestService_Get(t *testing.T) {
+	dataItemsPgRepo, dataItemsS3Repo, err := testRepos()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testModel := testModelEdit()
+	type fields struct {
+		repoDB RepoDBI
+		repoS3 RepoS3
+	}
+	type args struct {
+		ctx  context.Context
+		pars *model.GetPars
+		obj  *model.Edit
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *model.Main
+		want1   bool
+		wantErr bool
+	}{
+		{
+			name: "Get new data items service",
+			fields: fields{
+				repoDB: dataItemsPgRepo,
+				repoS3: dataItemsS3Repo,
+			},
+			args: args{
+				ctx: context.Background(),
+				pars: &model.GetPars{
+					ID: testModel.ID,
+				},
+				obj: testModel,
+			},
+			want: &model.Main{
+				ID: testModel.ID,
+			},
+			want1:   true,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{
+				repoDB: tt.fields.repoDB,
+				repoS3: tt.fields.repoS3,
+			}
+
+			if err = s.Create(tt.args.ctx, tt.args.obj); (err != nil) != tt.wantErr {
+				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			got, got1, err := s.Get(tt.args.ctx, tt.args.pars)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got.ID != tt.want.ID {
+				t.Errorf("Get() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("Get() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func TestService_List(t *testing.T) {
+	dataItemsPgRepo, dataItemsS3Repo, err := testRepos()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testModel := testModelEdit()
+	type fields struct {
+		repoDB RepoDBI
+		repoS3 RepoS3
+	}
+	type args struct {
+		ctx  context.Context
+		pars *model.ListPars
+		obj  *model.Edit
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want1   int64
+		wantErr bool
+	}{
+		{
+			name: "List new data items service",
+			fields: fields{
+				repoDB: dataItemsPgRepo,
+				repoS3: dataItemsS3Repo,
+			},
+			args: args{
+				ctx: context.Background(),
+				pars: &model.ListPars{
+					UserID: testModel.UserID,
+				},
+				obj: testModel,
+			},
+			want1:   1,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{
+				repoDB: tt.fields.repoDB,
+				repoS3: tt.fields.repoS3,
+			}
+
+			if err = s.Create(tt.args.ctx, tt.args.obj); (err != nil) != tt.wantErr {
+				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			_, got1, err := s.List(tt.args.ctx, tt.args.pars)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if got1 != tt.want1 {
+				t.Errorf("List() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}
+
+func TestService_Update(t *testing.T) {
+	dataItemsPgRepo, dataItemsS3Repo, err := testRepos()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testModel := testModelEdit()
+	type fields struct {
+		repoDB RepoDBI
+		repoS3 RepoS3
+	}
+	type args struct {
+		ctx  context.Context
+		pars *model.GetPars
+		obj  *model.Edit
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Update new data items service",
+			fields: fields{
+				repoDB: dataItemsPgRepo,
+				repoS3: dataItemsS3Repo,
+			},
+			args: args{
+				ctx: context.Background(),
+				pars: &model.GetPars{
+					ID: testModel.ID,
+				},
+				obj: testModel,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{
+				repoDB: tt.fields.repoDB,
+				repoS3: tt.fields.repoS3,
+			}
+
+			if err = s.Create(tt.args.ctx, tt.args.obj); (err != nil) != tt.wantErr {
+				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			newValue := "test"
+			tt.args.obj.URL = &newValue
+
 			if err := s.Update(tt.args.ctx, tt.args.pars, tt.args.obj); (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func testRepos() (*dataItemsRepoPgP.Repo, *dataItemsRepoS3P.S3Repo, error) {
+	pgpool, err := getPgPoolTestContainer()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	endpoint, accessKey, secretKey, bucketName, err := setupMinio(context.Background())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dataItemsPgRepo := dataItemsRepoPgP.New(pgpool)
+	dataItemsS3Repo, err := dataItemsRepoS3P.NewS3Repo(context.Background(), endpoint, accessKey, secretKey, bucketName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dataItemsPgRepo, dataItemsS3Repo, nil
+}
+
+func testModelEdit() *model.Edit {
+	id := uuid.New().String()
+	testUserID := "999"
+	binaryType := model.BinaryDataType
+	data := []byte("test/test")
+	meta := "binary"
+
+	return &model.Edit{
+		ID:     id,
+		UserID: &testUserID,
+		Type:   &binaryType,
+		Data:   &data,
+		Meta:   &meta,
 	}
 }
