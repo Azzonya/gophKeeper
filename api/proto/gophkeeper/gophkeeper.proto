@@ -3,6 +3,7 @@ syntax = "proto3";
 package gophkeeper;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 
 option go_package = "/gophkeeper";
 
@@ -10,10 +11,12 @@ service GophKeeperService {
   rpc Register (RegisterRequest) returns (RegisterResponse);
   rpc Login (LoginRequest) returns (LoginResponse);
   rpc GetData (GetDataRequest) returns (GetDataResponse);
+  rpc ListData (google.protobuf.Empty) returns (ListDataResponse);
   rpc CreateData (CreateDataRequest) returns (CreateDataResponse);
   rpc UpdateData (UpdateDataRequest) returns (UpdateDataResponse);
   rpc DeleteData (DeleteDataRequest) returns (DeleteDataResponse);
   rpc SyncData (SyncDataRequest) returns (SyncDataResponse);
+  rpc Ping(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
 message RegisterRequest {
@@ -42,6 +45,10 @@ message GetDataRequest {
 }
 
 message GetDataResponse {
+  repeated DataItem data = 1;
+}
+
+message ListDataResponse {
   repeated DataItem data = 1;
 }
 

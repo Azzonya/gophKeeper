@@ -11,11 +11,11 @@ CREATE TABLE users (
 CREATE INDEX idx_users_username ON users(username);
 
 CREATE TABLE data_items (
-                            id SERIAL PRIMARY KEY,
+                            id TEXT NOT NULL PRIMARY KEY,
                             user_id INT REFERENCES users(id) ON DELETE CASCADE,
-                            type data_type NOT NULL,  -- Использование ENUM типа данных
-                            data BYTEA NOT NULL,  -- Данные хранятся в бинарном формате
-                            meta TEXT,
+                            type data_type NOT NULL,
+                            data BYTEA NOT NULL,
+                            meta TEXT DEFAULT '',
                             url VARCHAR(255) NOT NULL DEFAULT '',
                             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

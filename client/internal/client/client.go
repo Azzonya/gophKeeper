@@ -10,9 +10,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/emptypb"
 	pb "gophKeeper/pkg/proto/gophkeeper"
 	"log/slog"
 	"os"
+	"sync"
+	"time"
 )
 
 // GophKeeperClient represents the gRPC client for interacting with the GophKeeper service.
@@ -20,13 +24,15 @@ import (
 // for authenticated requests.
 type GophKeeperClient struct {
 	client         pb.GophKeeperServiceClient
+	wg             sync.WaitGroup
 	enableTLS      bool
 	serverAddress  string
 	caFile         string
 	clientCertFile string
 	clientKeyFile  string
 
-	BearerToken string
+	ServerAvailable bool
+	BearerToken     string
 }
 
 // NewGophKeeperClient creates a new GophKeeperClient instance, setting up the gRPC connection
@@ -83,6 +89,12 @@ func loadTLSCredentials(caFile, clientCertFile, clientKeyFile string) (credentia
 	return credentials.NewTLS(config), nil
 }
 
+func (c *GophKeeperClient) CreateContextWithMetadata(timeout time.Duration) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	md := metadata.Pairs("token", "Bearer "+c.BearerToken)
+	return metadata.NewOutgoingContext(ctx, md), cancel
+}
+
 // Register sends a registration request to the GophKeeper server.
 func (c *GophKeeperClient) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	return c.client.Register(ctx, req)
@@ -103,6 +115,11 @@ func (c *GophKeeperClient) GetData(ctx context.Context, req *pb.GetDataRequest) 
 	return c.client.GetData(ctx, req)
 }
 
+// ListData sends a request to retrieve a data items from GophKeeper server.
+func (c *GophKeeperClient) ListData(ctx context.Context, req *emptypb.Empty) (*pb.ListDataResponse, error) {
+	return c.client.ListData(ctx, req)
+}
+
 // UpdateData sends a request to update an existing data item in the GophKeeper server.
 func (c *GophKeeperClient) UpdateData(ctx context.Context, req *pb.UpdateDataRequest) (*pb.UpdateDataResponse, error) {
 	return c.client.UpdateData(ctx, req)
@@ -116,4 +133,37 @@ func (c *GophKeeperClient) DeleteData(ctx context.Context, req *pb.DeleteDataReq
 // SyncData sends a request to synchronize data between the client and the GophKeeper server.
 func (c *GophKeeperClient) SyncData(ctx context.Context, req *pb.SyncDataRequest) (*pb.SyncDataResponse, error) {
 	return c.client.SyncData(ctx, req)
+}
+
+// IsServerAvailable pings server
+func (c *GophKeeperClient) IsServerAvailable(ctx context.Context, req *emptypb.Empty, preStartHook bool) {
+	if !preStartHook {
+		defer c.wg.Done()
+	}
+
+	resp, err := c.client.Ping(ctx, req)
+	c.ServerAvailable = !(err != nil || resp == nil)
+}
+
+// Start checks is server available for some period
+func (c *GophKeeperClient) Start(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				c.wg.Add(1)
+				c.IsServerAvailable(ctx, &emptypb.Empty{}, false)
+			}
+		}
+	}()
+}
+
+// Wait blocks until the WaitGroup counter is zero.
+func (c *GophKeeperClient) Wait() {
+	c.wg.Wait()
 }

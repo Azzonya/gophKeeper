@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"gophKeeper/server/internal/domain/data_items/model"
-	"strconv"
 )
 
 // Service provides methods to manage data items, handling both database operations
@@ -33,25 +32,33 @@ func (s *Service) List(ctx context.Context, pars *model.ListPars) ([]*model.Main
 // Create stores a new data item in the database and, if the item is of binary type,
 // uploads the binary data to S3 and updates the database with the file's URL.
 func (s *Service) Create(ctx context.Context, obj *model.Edit) error {
-	id, err := s.repoDB.Create(ctx, obj)
+	tx, err := s.repoDB.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer s.repoDB.HandleTxCompletion(tx, &err)
+
+	err = s.repoDB.Create(ctx, obj)
 	if err != nil {
 		return err
 	}
 
 	if *obj.Type == model.BinaryDataType {
 		var url string
-		url, err = s.repoS3.UploadFile(ctx, id, *obj.Data)
+		url, err = s.repoS3.UploadFile(ctx, obj.ID, *obj.Data)
 		if err != nil {
 			return err
 		}
 
 		err = s.Update(ctx, &model.GetPars{
-			ID: strconv.Itoa(id),
+			ID: obj.ID,
 		}, &model.Edit{
-			Data: nil,
-			URL:  &url,
+			URL: &url,
 		})
 		if err != nil {
+			_ = s.repoS3.DeleteFile(ctx, &model.GetPars{
+				ID: obj.ID,
+			})
 			return err
 		}
 	}
@@ -97,11 +104,7 @@ func (s *Service) Update(ctx context.Context, pars *model.GetPars, obj *model.Ed
 	}
 
 	if existingObj.Type == model.BinaryDataType && obj.Data != nil {
-		id, err := strconv.Atoi(pars.ID)
-		if err != nil {
-			return fmt.Errorf("invalid ID format: %v", err)
-		}
-		url, err := s.repoS3.UploadFile(ctx, id, *obj.Data)
+		url, err := s.repoS3.UploadFile(ctx, pars.ID, *obj.Data)
 		if err != nil {
 			return err
 		}

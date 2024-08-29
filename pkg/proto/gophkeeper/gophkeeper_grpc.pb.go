@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -22,10 +23,12 @@ const (
 	GophKeeperService_Register_FullMethodName   = "/gophkeeper.GophKeeperService/Register"
 	GophKeeperService_Login_FullMethodName      = "/gophkeeper.GophKeeperService/Login"
 	GophKeeperService_GetData_FullMethodName    = "/gophkeeper.GophKeeperService/GetData"
+	GophKeeperService_ListData_FullMethodName   = "/gophkeeper.GophKeeperService/ListData"
 	GophKeeperService_CreateData_FullMethodName = "/gophkeeper.GophKeeperService/CreateData"
 	GophKeeperService_UpdateData_FullMethodName = "/gophkeeper.GophKeeperService/UpdateData"
 	GophKeeperService_DeleteData_FullMethodName = "/gophkeeper.GophKeeperService/DeleteData"
 	GophKeeperService_SyncData_FullMethodName   = "/gophkeeper.GophKeeperService/SyncData"
+	GophKeeperService_Ping_FullMethodName       = "/gophkeeper.GophKeeperService/Ping"
 )
 
 // GophKeeperServiceClient is the client API for GophKeeperService service.
@@ -35,10 +38,12 @@ type GophKeeperServiceClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (*GetDataResponse, error)
+	ListData(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListDataResponse, error)
 	CreateData(ctx context.Context, in *CreateDataRequest, opts ...grpc.CallOption) (*CreateDataResponse, error)
 	UpdateData(ctx context.Context, in *UpdateDataRequest, opts ...grpc.CallOption) (*UpdateDataResponse, error)
 	DeleteData(ctx context.Context, in *DeleteDataRequest, opts ...grpc.CallOption) (*DeleteDataResponse, error)
 	SyncData(ctx context.Context, in *SyncDataRequest, opts ...grpc.CallOption) (*SyncDataResponse, error)
+	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type gophKeeperServiceClient struct {
@@ -70,6 +75,15 @@ func (c *gophKeeperServiceClient) Login(ctx context.Context, in *LoginRequest, o
 func (c *gophKeeperServiceClient) GetData(ctx context.Context, in *GetDataRequest, opts ...grpc.CallOption) (*GetDataResponse, error) {
 	out := new(GetDataResponse)
 	err := c.cc.Invoke(ctx, GophKeeperService_GetData_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophKeeperServiceClient) ListData(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListDataResponse, error) {
+	out := new(ListDataResponse)
+	err := c.cc.Invoke(ctx, GophKeeperService_ListData_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +126,15 @@ func (c *gophKeeperServiceClient) SyncData(ctx context.Context, in *SyncDataRequ
 	return out, nil
 }
 
+func (c *gophKeeperServiceClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, GophKeeperService_Ping_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GophKeeperServiceServer is the server API for GophKeeperService service.
 // All implementations must embed UnimplementedGophKeeperServiceServer
 // for forward compatibility
@@ -119,10 +142,12 @@ type GophKeeperServiceServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	GetData(context.Context, *GetDataRequest) (*GetDataResponse, error)
+	ListData(context.Context, *emptypb.Empty) (*ListDataResponse, error)
 	CreateData(context.Context, *CreateDataRequest) (*CreateDataResponse, error)
 	UpdateData(context.Context, *UpdateDataRequest) (*UpdateDataResponse, error)
 	DeleteData(context.Context, *DeleteDataRequest) (*DeleteDataResponse, error)
 	SyncData(context.Context, *SyncDataRequest) (*SyncDataResponse, error)
+	Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	mustEmbedUnimplementedGophKeeperServiceServer()
 }
 
@@ -139,6 +164,9 @@ func (UnimplementedGophKeeperServiceServer) Login(context.Context, *LoginRequest
 func (UnimplementedGophKeeperServiceServer) GetData(context.Context, *GetDataRequest) (*GetDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetData not implemented")
 }
+func (UnimplementedGophKeeperServiceServer) ListData(context.Context, *emptypb.Empty) (*ListDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListData not implemented")
+}
 func (UnimplementedGophKeeperServiceServer) CreateData(context.Context, *CreateDataRequest) (*CreateDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateData not implemented")
 }
@@ -150,6 +178,9 @@ func (UnimplementedGophKeeperServiceServer) DeleteData(context.Context, *DeleteD
 }
 func (UnimplementedGophKeeperServiceServer) SyncData(context.Context, *SyncDataRequest) (*SyncDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SyncData not implemented")
+}
+func (UnimplementedGophKeeperServiceServer) Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
 func (UnimplementedGophKeeperServiceServer) mustEmbedUnimplementedGophKeeperServiceServer() {}
 
@@ -214,6 +245,24 @@ func _GophKeeperService_GetData_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GophKeeperServiceServer).GetData(ctx, req.(*GetDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GophKeeperService_ListData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServiceServer).ListData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GophKeeperService_ListData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServiceServer).ListData(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -290,6 +339,24 @@ func _GophKeeperService_SyncData_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GophKeeperService_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophKeeperServiceServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GophKeeperService_Ping_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophKeeperServiceServer).Ping(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GophKeeperService_ServiceDesc is the grpc.ServiceDesc for GophKeeperService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -310,6 +377,10 @@ var GophKeeperService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GophKeeperService_GetData_Handler,
 		},
 		{
+			MethodName: "ListData",
+			Handler:    _GophKeeperService_ListData_Handler,
+		},
+		{
 			MethodName: "CreateData",
 			Handler:    _GophKeeperService_CreateData_Handler,
 		},
@@ -324,6 +395,10 @@ var GophKeeperService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SyncData",
 			Handler:    _GophKeeperService_SyncData_Handler,
+		},
+		{
+			MethodName: "Ping",
+			Handler:    _GophKeeperService_Ping_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

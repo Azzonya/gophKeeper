@@ -26,6 +26,11 @@ func (u *Usecase) GetData(ctx context.Context, obj *model.GetPars) (*model.Main,
 	return u.dataItemsService.Get(ctx, obj)
 }
 
+// ListAll retrieves the all data item based on the provided user id
+func (u *Usecase) ListAll(ctx context.Context, obj *model.ListPars) ([]*model.Main, int64, error) {
+	return u.dataItemsService.List(ctx, obj)
+}
+
 // CreateData creates a new data item using the provided model.Edit object.
 func (u *Usecase) CreateData(ctx context.Context, obj *model.Edit) error {
 	return u.dataItemsService.Create(ctx, obj)

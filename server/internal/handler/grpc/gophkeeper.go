@@ -6,6 +6,7 @@ import (
 	"context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	pb "gophKeeper/pkg/proto/gophkeeper"
 	dataItemsModel "gophKeeper/server/internal/domain/data_items/model"
@@ -88,6 +89,39 @@ func (s *St) GetData(ctx context.Context, req *pb.GetDataRequest) (*pb.GetDataRe
 	}, nil
 }
 
+// ListData retrieves a data items based on user ID
+func (s *St) ListData(ctx context.Context, _ *emptypb.Empty) (*pb.ListDataResponse, error) {
+	userID, err := s.usersUcs.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, _, err := s.dataItemsUcs.ListAll(ctx, &dataItemsModel.ListPars{
+		UserID: &userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	dataItems := make([]*pb.DataItem, 0, len(result))
+	for _, item := range result {
+		dataItem := &pb.DataItem{
+			Id:        item.ID,
+			Type:      item.Type,
+			Data:      item.Data,
+			Meta:      item.Meta,
+			CreatedAt: timestamppb.New(item.CreatedAt),
+			UpdatedAt: timestamppb.New(item.UpdatedAt),
+		}
+
+		dataItems = append(dataItems, dataItem)
+	}
+
+	return &pb.ListDataResponse{
+		Data: dataItems,
+	}, nil
+}
+
 // CreateData handles requests to create new data items for a user.
 func (s *St) CreateData(ctx context.Context, req *pb.CreateDataRequest) (*pb.CreateDataResponse, error) {
 	userID, err := s.usersUcs.GetUserIDFromContext(ctx)
@@ -98,6 +132,7 @@ func (s *St) CreateData(ctx context.Context, req *pb.CreateDataRequest) (*pb.Cre
 	data := req.GetData()
 
 	err = s.dataItemsUcs.CreateData(ctx, &dataItemsModel.Edit{
+		ID:     data.Id,
 		UserID: &userID,
 		Type:   &data.Type,
 		Data:   &data.Data,
@@ -163,4 +198,9 @@ func (s *St) DeleteData(ctx context.Context, req *pb.DeleteDataRequest) (*pb.Del
 // SyncData handles requests to synchronize data between the client and the server (currently not implemented).
 func (s *St) SyncData(ctx context.Context, req *pb.SyncDataRequest) (*pb.SyncDataResponse, error) {
 	return nil, nil
+}
+
+// Ping handles requests to show is server available
+func (s *St) Ping(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return &emptypb.Empty{}, nil
 }

@@ -10,7 +10,10 @@ import (
 // Conf holds the configuration settings for the client, including the gRPC server address,
 // paths to the CA and client certificates, and the option to enable TLS.
 var Conf = struct {
-	ServerAddress  string `mapstructure:"server_address"`
+	ServerAddress  string `env:"server_address"`
+	RedisAddress   string `env:"redis_address" envDefault:"localhost:6379"`
+	RedisPassword  string `env:"redis_password" envDefault:"password"`
+	RedisDb        int    `env:"redis_db" envDefault:"0"`
 	CAFile         string `env:"CA_FILE" envDefault:"cert/ca-cert.pem"`
 	ClientCertFile string `env:"client_cert_file" envDefault:"cert/client-cert.pem"`
 	ClientKeyFile  string `env:"client_key_file" envDefault:"cert/client-key.pem"`

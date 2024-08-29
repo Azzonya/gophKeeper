@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // Импортируем драйвер для работы с файлами
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"gophKeeper/server/internal/domain/data_items/model"
@@ -14,8 +15,9 @@ import (
 	"log"
 	"reflect"
 	"testing"
-	"time"
 )
+
+const TestUserID = "999"
 
 func getPgPoolTestContainer() (*pgxpool.Pool, error) {
 	ctx := context.Background()
@@ -57,22 +59,52 @@ func getPgPoolTestContainer() (*pgxpool.Pool, error) {
 
 	log.Print(dsn)
 
+	err = migrateUp(dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := pgpool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(ctx, "INSERT INTO users (id, username, password_hash) VALUES ('999', 'Test User', 'test')")
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при вставке данных: %w", err)
+	}
+
 	return pgpool, err
 }
 
-func minioContainerStart() (string, string, string, string) {
-	ctx := context.Background()
+func migrateUp(dsn string) error {
+	m, err := migrate.New(
+		"file://../../../../migrations",
+		dsn,
+	)
+	if err != nil {
+		log.Fatalf("Ошибка при настройке миграций: %v\n", err)
+	}
 
-	// Запрос на запуск контейнера с MinIO
+	// Применение всех миграций
+	if err = m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("Ошибка при применении миграций: %v\n", err)
+	}
+
+	return err
+}
+
+func setupMinio(ctx context.Context) (string, string, string, string, error) {
 	req := testcontainers.ContainerRequest{
-		Image:        "minio/minio",
-		ExposedPorts: []string{"9005/tcp"},
-		Cmd:          []string{"server", "/data"},
+		Image:        "minio/minio:latest",
+		ExposedPorts: []string{"9000/tcp"},
 		Env: map[string]string{
 			"MINIO_ROOT_USER":     "minioadmin",
 			"MINIO_ROOT_PASSWORD": "minioadmin",
 		},
-		WaitingFor: wait.ForLog("API: http://0.0.0.0:9005").WithStartupTimeout(60 * time.Second), // Ожидание появления лога
+		WaitingFor: wait.ForHTTP("/minio/health/live").WithPort("9000/tcp"),
+		Cmd:        []string{"server", "/data"},
 	}
 
 	minioContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -80,57 +112,23 @@ func minioContainerStart() (string, string, string, string) {
 		Started:          true,
 	})
 	if err != nil {
-		log.Fatalf("Ошибка при создании контейнера: %v", err)
+		return "", "", "", "", fmt.Errorf("не удалось запустить контейнер: %w", err)
 	}
-	defer minioContainer.Terminate(ctx)
 
-	host, err := minioContainer.Host(ctx)
+	// Получаем порт, по которому доступен MinIO
+	hostPort, err := minioContainer.MappedPort(ctx, "9000")
 	if err != nil {
-		log.Fatalf("Ошибка при получении хоста: %v", err)
+		return "", "", "", "", fmt.Errorf("не удалось получить порт: %w", err)
 	}
 
-	port, err := minioContainer.MappedPort(ctx, "9005")
-	if err != nil {
-		log.Fatalf("Ошибка при маппинге порта: %v", err)
-	}
+	endpoint := fmt.Sprintf("localhost:%s", hostPort.Port())
 
-	endpoint := fmt.Sprintf("%s:%s", host, port.Port())
+	// Конфигурация доступа
 	accessKey := "minioadmin"
 	secretKey := "minioadmin"
+	bucketName := "test-bucket"
 
-	// Инициализация клиента MinIO
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: false,
-	})
-	if err != nil {
-		log.Fatalf("Ошибка при создании MinIO клиента: %v", err)
-	}
-
-	bucketName := "my-bucket"
-	location := "us-east-1"
-
-	// Ожидание перед созданием bucket (можно убрать при использовании wait.ForLog)
-	time.Sleep(5 * time.Second)
-
-	err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{Region: location})
-	if err != nil {
-		exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
-		if errBucketExists == nil && exists {
-			fmt.Printf("Bucket %s уже существует\n", bucketName)
-		} else {
-			log.Fatalf("Ошибка при создании bucket: %v", err)
-		}
-	} else {
-		fmt.Printf("Успешно создан bucket %s\n", bucketName)
-	}
-
-	fmt.Printf("MinIO запущен на: %s\n", endpoint)
-	fmt.Printf("AccessKey: %s\n", accessKey)
-	fmt.Printf("SecretKey: %s\n", secretKey)
-	fmt.Printf("Bucket: %s\n", bucketName)
-
-	return endpoint, accessKey, secretKey, bucketName
+	return endpoint, accessKey, secretKey, bucketName, nil
 }
 
 func TestNew(t *testing.T) {
@@ -139,7 +137,10 @@ func TestNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	endpoint, accessKey, secretKey, bucketName := minioContainerStart()
+	endpoint, accessKey, secretKey, bucketName, err := setupMinio(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dataItemsPgRepo := dataItemsRepoPgP.New(pgpool)
 	dataItemsS3Repo, err := dataItemsRepoS3P.NewS3Repo(context.Background(), endpoint, accessKey, secretKey, bucketName)
@@ -175,6 +176,29 @@ func TestNew(t *testing.T) {
 }
 
 func TestService_Create(t *testing.T) {
+	pgpool, err := getPgPoolTestContainer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	endpoint, accessKey, secretKey, bucketName, err := setupMinio(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dataItemsPgRepo := dataItemsRepoPgP.New(pgpool)
+	dataItemsS3Repo, err := dataItemsRepoS3P.NewS3Repo(context.Background(), endpoint, accessKey, secretKey, bucketName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testUserID := "999"
+	bankCardType := model.CredentialsDataType
+	credentialsType := model.CredentialsDataType
+	binaryType := model.BinaryDataType
+	data := []byte("test/test")
+	meta := "binary"
+
 	type fields struct {
 		repoDB RepoDBI
 		repoS3 RepoS3
@@ -189,7 +213,71 @@ func TestService_Create(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Create new data items service - bank card",
+			fields: fields{
+				repoDB: dataItemsPgRepo,
+				repoS3: dataItemsS3Repo,
+			},
+			args: args{
+				ctx: context.Background(),
+				obj: &model.Edit{
+					UserID: &testUserID,
+					Type:   &bankCardType,
+					Data:   &data,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Create new data items service - credentials",
+			fields: fields{
+				repoDB: dataItemsPgRepo,
+				repoS3: dataItemsS3Repo,
+			},
+			args: args{
+				ctx: context.Background(),
+				obj: &model.Edit{
+					UserID: &testUserID,
+					Type:   &credentialsType,
+					Data:   &data,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Create new data items service - binary",
+			fields: fields{
+				repoDB: dataItemsPgRepo,
+				repoS3: dataItemsS3Repo,
+			},
+			args: args{
+				ctx: context.Background(),
+				obj: &model.Edit{
+					UserID: &testUserID,
+					Type:   &binaryType,
+					Data:   &data,
+					Meta:   &meta,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Create new data items service - binary error",
+			fields: fields{
+				repoDB: dataItemsPgRepo,
+				repoS3: dataItemsS3Repo,
+			},
+			args: args{
+				ctx: context.Background(),
+				obj: &model.Edit{
+					UserID: &testUserID,
+					Type:   &binaryType,
+					Data:   &data,
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -197,6 +285,7 @@ func TestService_Create(t *testing.T) {
 				repoDB: tt.fields.repoDB,
 				repoS3: tt.fields.repoS3,
 			}
+
 			if err := s.Create(tt.args.ctx, tt.args.obj); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -219,7 +308,7 @@ func TestService_Delete(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

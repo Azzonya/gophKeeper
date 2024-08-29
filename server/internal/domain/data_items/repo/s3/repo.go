@@ -12,7 +12,6 @@ import (
 	"io"
 	"log"
 	"path/filepath"
-	"strconv"
 )
 
 // S3Repo manages interactions with the S3 storage, including file operations
@@ -61,8 +60,7 @@ func NewS3Repo(ctx context.Context, S3Endpoint, S3AccessKey, S3SecretKey, S3Buck
 // GetFile retrieves a file from the S3 bucket based on the provided parameters.
 // It returns the file as a byte slice, a boolean indicating if the file exists, and any error encountered.
 func (r *S3Repo) GetFile(ctx context.Context, pars *model.GetPars) ([]byte, bool, error) {
-	id, _ := strconv.Atoi(pars.ID)
-	objectName := filepath.Join("uploads", fmt.Sprintf("%d", id))
+	objectName := filepath.Join("uploads", pars.ID)
 	object, err := r.client.GetObject(ctx, r.S3Bucket, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to get object: %v", err)
@@ -75,12 +73,12 @@ func (r *S3Repo) GetFile(ctx context.Context, pars *model.GetPars) ([]byte, bool
 		log.Fatalln(err)
 	}
 
-	return buffer.Bytes(), false, nil
+	return buffer.Bytes(), true, nil
 }
 
 // UploadFile uploads a file to the S3 bucket, returning the URL of the uploaded file or an error.
-func (r *S3Repo) UploadFile(ctx context.Context, id int, data []byte) (string, error) {
-	objectName := filepath.Join("uploads", fmt.Sprintf("%d", id))
+func (r *S3Repo) UploadFile(ctx context.Context, id string, data []byte) (string, error) {
+	objectName := filepath.Join("uploads", id)
 	_, err := r.client.PutObject(ctx, r.S3Bucket, objectName, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload file to MinIO: %v", err)
