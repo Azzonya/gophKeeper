@@ -5,7 +5,7 @@ package service
 import (
 	"context"
 	"github.com/jackc/pgx/v5"
-	"gophKeeper/server/internal/domain/dataItems/model"
+	"gophKeeper/server/internal/domain/dataitems/model"
 )
 
 // RepoDBI outlines the methods for interacting with the database repository,

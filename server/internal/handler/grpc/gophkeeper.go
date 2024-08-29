@@ -9,8 +9,8 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	pb "gophKeeper/pkg/proto/gophkeeper"
-	dataItemsModel "gophKeeper/server/internal/domain/dataItems/model"
-	dataItemsU "gophKeeper/server/internal/usecase/dataItems"
+	dataItemsModel "gophKeeper/server/internal/domain/dataitems/model"
+	dataItemsU "gophKeeper/server/internal/usecase/dataitems"
 	usersU "gophKeeper/server/internal/usecase/users"
 )
 

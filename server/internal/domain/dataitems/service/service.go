@@ -5,7 +5,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"gophKeeper/server/internal/domain/dataItems/model"
+	"gophKeeper/server/internal/domain/dataitems/model"
 )
 
 // Service provides methods to manage data items, handling both database operations
