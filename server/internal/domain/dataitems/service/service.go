@@ -53,7 +53,7 @@ func (s *Service) List(ctx context.Context, pars *model.ListPars) ([]*model.Data
 }
 
 // Create stores a new data item in the database and, if the item is of binary type,
-// uploads the binary data to S3 and updates the database with the file's URL.
+// uploads the binary data to S3 and updates the database with the file's URL
 func (s *Service) Create(ctx context.Context, obj *model.Edit) error {
 	tx, err := s.repoDB.BeginTx(ctx)
 	if err != nil {
