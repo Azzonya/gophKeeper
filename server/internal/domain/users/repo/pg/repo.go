@@ -27,12 +27,12 @@ func New(con *pgxpool.Pool) *Repo {
 
 // Get retrieves a user based on the provided query parameters. It returns the user if found,
 // a boolean indicating the user's existence, and any error encountered.
-func (r *Repo) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bool, error) {
+func (r *Repo) Get(ctx context.Context, pars *model.GetPars) (*model.User, bool, error) {
 	if !pars.IsValid() {
 		return nil, false, errs.InvalidInput
 	}
 
-	var result model.Main
+	var result model.User
 
 	queryBuilder := squirrel.Select("*").From("users")
 
@@ -65,7 +65,7 @@ func (r *Repo) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bool,
 // List retrieves multiple users based on the provided filtering parameters,
 // supporting filters like UserIDs, Username, and timestamps. It returns the list
 // of users, the total count, and any error encountered.
-func (r *Repo) List(ctx context.Context, pars *model.ListPars) ([]*model.Main, int64, error) {
+func (r *Repo) List(ctx context.Context, pars *model.ListPars) ([]*model.User, int64, error) {
 	queryBuilder := squirrel.
 		Select("id", "username", "password_hash", "created_at", "updated_at").
 		From("users").
@@ -111,9 +111,9 @@ func (r *Repo) List(ctx context.Context, pars *model.ListPars) ([]*model.Main, i
 
 	defer rows.Close()
 
-	var result []*model.Main
+	var result []*model.User
 	for rows.Next() {
-		var user model.Main
+		var user model.User
 		err = rows.Scan(&user.UserID, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
 		if err != nil {
 			return nil, 0, err

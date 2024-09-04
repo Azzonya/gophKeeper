@@ -364,7 +364,7 @@ func TestService_Get(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *model.Main
+		want    *model.DataItems
 		want1   bool
 		wantErr bool
 	}{
@@ -381,7 +381,7 @@ func TestService_Get(t *testing.T) {
 				},
 				obj: testModel,
 			},
-			want: &model.Main{
+			want: &model.DataItems{
 				ID: testModel.ID,
 			},
 			want1:   true,

@@ -76,7 +76,7 @@ func (a *Auth) GetUserIDFromContext(ctx context.Context) (string, error) {
 }
 
 // CreateToken generates a signed JWT token for a given user, based on their user ID.
-func (a *Auth) CreateToken(u *model.Main) (string, error) {
+func (a *Auth) CreateToken(u *model.User) (string, error) {
 	token, err := a.NewToken(u)
 	if err != nil {
 		return "", fmt.Errorf("cannot create auth token: %w", err)
@@ -86,7 +86,7 @@ func (a *Auth) CreateToken(u *model.Main) (string, error) {
 
 // NewToken creates a new JWT token with an expiration time and includes the user ID (UID) in the claims.
 // The token is signed using the provided JWT secret.
-func (a *Auth) NewToken(u *model.Main) (string, error) {
+func (a *Auth) NewToken(u *model.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(defaultJWTCookieExpiration)),

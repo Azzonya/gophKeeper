@@ -4,9 +4,9 @@ package model
 
 import "time"
 
-// Main represents the core user entity, storing user identification details,
+// User represents the core user entity, storing user identification details,
 // username, password hash, and timestamps for record creation and updates.
-type Main struct {
+type User struct {
 	UserID       string
 	Username     string
 	PasswordHash string

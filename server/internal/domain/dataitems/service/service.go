@@ -5,6 +5,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"gophKeeper/server/internal/domain/dataitems/model"
 )
 
@@ -23,9 +24,31 @@ func New(repoDB RepoDBI, repoS3 RepoS3) *Service {
 	}
 }
 
+// RepoDBI outlines the methods for interacting with the database repository,
+// including operations to get, list, create, update, and delete data items.
+type RepoDBI interface {
+	Get(ctx context.Context, pars *model.GetPars) (*model.DataItems, bool, error)
+	List(ctx context.Context, pars *model.ListPars) ([]*model.DataItems, int64, error)
+	Create(ctx context.Context, obj *model.Edit) error
+	Update(ctx context.Context, pars *model.GetPars, obj *model.Edit) error
+	Delete(ctx context.Context, pars *model.GetPars) error
+	BeginTx(ctx context.Context) (pgx.Tx, error)
+	CommitTx(ctx context.Context, tx pgx.Tx) error
+	RollbackTx(ctx context.Context, tx pgx.Tx) error
+	HandleTxCompletion(tx pgx.Tx, err *error)
+}
+
+// RepoS3 defines the methods for interacting with an S3-compatible storage,
+// including operations to get, upload, and delete files.
+type RepoS3 interface {
+	GetFile(ctx context.Context, pars *model.GetPars) ([]byte, bool, error)
+	UploadFile(ctx context.Context, id string, data []byte) (string, error)
+	DeleteFile(ctx context.Context, pars *model.GetPars) error
+}
+
 // List retrieves data items based on the provided filtering parameters.
 // It delegates the operation to the database repository.
-func (s *Service) List(ctx context.Context, pars *model.ListPars) ([]*model.Main, int64, error) {
+func (s *Service) List(ctx context.Context, pars *model.ListPars) ([]*model.DataItems, int64, error) {
 	return s.repoDB.List(ctx, pars)
 }
 
@@ -34,20 +57,20 @@ func (s *Service) List(ctx context.Context, pars *model.ListPars) ([]*model.Main
 func (s *Service) Create(ctx context.Context, obj *model.Edit) error {
 	tx, err := s.repoDB.BeginTx(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("Begin transaction - %w", err)
 	}
 	defer s.repoDB.HandleTxCompletion(tx, &err)
 
 	err = s.repoDB.Create(ctx, obj)
 	if err != nil {
-		return err
+		return fmt.Errorf("create data in PostgreSQL - %w", err)
 	}
 
 	if *obj.Type == model.BinaryDataType {
 		var url string
 		url, err = s.repoS3.UploadFile(ctx, obj.ID, *obj.Data)
 		if err != nil {
-			return err
+			return fmt.Errorf("upload file to MinIO - %w", err)
 		}
 
 		err = s.Update(ctx, &model.GetPars{
@@ -59,7 +82,7 @@ func (s *Service) Create(ctx context.Context, obj *model.Edit) error {
 			_ = s.repoS3.DeleteFile(ctx, &model.GetPars{
 				ID: obj.ID,
 			})
-			return err
+			return fmt.Errorf("delete file in MinIO - %w", err)
 		}
 	}
 
@@ -68,10 +91,10 @@ func (s *Service) Create(ctx context.Context, obj *model.Edit) error {
 
 // Get retrieves a data item from the database and, if it is of binary type,
 // fetches the associated file from S3 and returns it as part of the response.
-func (s *Service) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bool, error) {
+func (s *Service) Get(ctx context.Context, pars *model.GetPars) (*model.DataItems, bool, error) {
 	obj, found, err := s.repoDB.Get(ctx, pars)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("get data from PostgreSQL - %w", err)
 	}
 	if !found {
 		return nil, false, nil
@@ -80,7 +103,7 @@ func (s *Service) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bo
 	if obj.Type == model.BinaryDataType {
 		file, found, err := s.repoS3.GetFile(ctx, &model.GetPars{ID: obj.ID})
 		if err != nil {
-			return nil, false, err
+			return nil, false, fmt.Errorf("get data from MinIO - %w", err)
 		}
 		if !found {
 			return nil, false, nil
@@ -97,7 +120,7 @@ func (s *Service) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bo
 func (s *Service) Update(ctx context.Context, pars *model.GetPars, obj *model.Edit) error {
 	existingObj, found, err := s.repoDB.Get(ctx, pars)
 	if err != nil {
-		return err
+		return fmt.Errorf("get data from PostgreSQL - %w", err)
 	}
 	if !found {
 		return fmt.Errorf("record not found")
@@ -106,7 +129,7 @@ func (s *Service) Update(ctx context.Context, pars *model.GetPars, obj *model.Ed
 	if existingObj.Type == model.BinaryDataType && obj.Data != nil {
 		url, err := s.repoS3.UploadFile(ctx, pars.ID, *obj.Data)
 		if err != nil {
-			return err
+			return fmt.Errorf("upload file to MinIO - %w", err)
 		}
 		obj.URL = &url
 	}
@@ -119,7 +142,7 @@ func (s *Service) Update(ctx context.Context, pars *model.GetPars, obj *model.Ed
 func (s *Service) Delete(ctx context.Context, pars *model.GetPars) error {
 	existingObj, found, err := s.repoDB.Get(ctx, pars)
 	if err != nil {
-		return err
+		return fmt.Errorf("get data from PostgreSQL - %w", err)
 	}
 	if !found {
 		return fmt.Errorf("record not found")
@@ -128,7 +151,7 @@ func (s *Service) Delete(ctx context.Context, pars *model.GetPars) error {
 	if existingObj.Type == model.BinaryDataType {
 		err = s.repoS3.DeleteFile(ctx, &model.GetPars{ID: existingObj.ID})
 		if err != nil {
-			return err
+			return fmt.Errorf("delete file to MinIO - %w", err)
 		}
 	}
 

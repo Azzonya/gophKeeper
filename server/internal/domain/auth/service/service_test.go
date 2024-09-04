@@ -14,7 +14,7 @@ func TestAuth_CreateToken(t *testing.T) {
 		JwtSecret string
 	}
 	type args struct {
-		u *model.Main
+		u *model.User
 	}
 	tests := []struct {
 		name    string
@@ -29,7 +29,7 @@ func TestAuth_CreateToken(t *testing.T) {
 				JwtSecret: "secret",
 			},
 			args: args{
-				u: &model.Main{
+				u: &model.User{
 					UserID:   "999",
 					Username: "Test",
 				},
@@ -58,7 +58,7 @@ func TestAuth_CreateToken(t *testing.T) {
 func TestAuth_GetUserIDFromContext(t *testing.T) {
 	invalidToken := "invalid-jwt-token"
 
-	u := &model.Main{
+	u := &model.User{
 		UserID:   "999",
 		Username: "Test",
 	}
@@ -139,7 +139,7 @@ func TestAuth_NewToken(t *testing.T) {
 		JwtSecret string
 	}
 	type args struct {
-		u *model.Main
+		u *model.User
 	}
 	tests := []struct {
 		name    string
@@ -153,7 +153,7 @@ func TestAuth_NewToken(t *testing.T) {
 				JwtSecret: "secret",
 			},
 			args: args{
-				u: &model.Main{
+				u: &model.User{
 					UserID:   "999",
 					Username: "Test",
 				},

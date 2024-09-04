@@ -5,6 +5,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"gophKeeper/server/internal/domain/users/model"
 )
@@ -22,6 +23,18 @@ func New(repoDB RepoDBI) *Service {
 	}
 }
 
+// RepoDBI defines the interface for database interactions related to user accounts.
+// It includes methods for retrieving, listing, creating, updating, deleting, and checking
+// the existence of users in the database.
+type RepoDBI interface {
+	Get(ctx context.Context, pars *model.GetPars) (*model.User, bool, error)
+	List(ctx context.Context, pars *model.ListPars) ([]*model.User, int64, error)
+	Create(ctx context.Context, obj *model.Edit) error
+	Update(ctx context.Context, pars *model.GetPars, obj *model.Edit) error
+	Delete(ctx context.Context, pars *model.GetPars) error
+	Exists(ctx context.Context, pars *model.GetPars) (bool, error)
+}
+
 // IsValidPassword compares a hashed password with a plain password to verify a match.
 func (s *Service) IsValidPassword(password string, plainPassword string) bool {
 	// Сравниваем хэшированный пароль из базы данных с переданным паролем
@@ -34,7 +47,7 @@ func (s *Service) HashPassword(password string) (string, error) {
 	// Хэшируем пароль перед сохранением в базу данных
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("can not hash password - %w", err)
 	}
 
 	return string(hashedPassword), nil
@@ -47,7 +60,7 @@ func (s *Service) IsLoginTaken(ctx context.Context, username string) (bool, erro
 
 // List retrieves a list of users based on the provided filtering parameters,
 // delegating the operation to the database repository.
-func (s *Service) List(ctx context.Context, pars *model.ListPars) ([]*model.Main, int64, error) {
+func (s *Service) List(ctx context.Context, pars *model.ListPars) ([]*model.User, int64, error) {
 	return s.repoDB.List(ctx, pars)
 }
 
@@ -57,7 +70,7 @@ func (s *Service) Create(ctx context.Context, obj *model.Edit) error {
 }
 
 // Get retrieves a user account from the database based on the provided query parameters.
-func (s *Service) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bool, error) {
+func (s *Service) Get(ctx context.Context, pars *model.GetPars) (*model.User, bool, error) {
 	return s.repoDB.Get(ctx, pars)
 }
 

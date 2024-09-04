@@ -21,13 +21,24 @@ func New(dataItemsService DataItemsServiceI) *Usecase {
 	}
 }
 
+// DataItemsServiceI defines the interface for the data items service,
+// providing methods to manage data items, including listing, creating,
+// retrieving, updating, and deleting operations.
+type DataItemsServiceI interface {
+	List(ctx context.Context, pars *model.ListPars) ([]*model.DataItems, int64, error)
+	Create(ctx context.Context, obj *model.Edit) error
+	Get(ctx context.Context, pars *model.GetPars) (*model.DataItems, bool, error)
+	Update(ctx context.Context, pars *model.GetPars, obj *model.Edit) error
+	Delete(ctx context.Context, pars *model.GetPars) error
+}
+
 // GetData retrieves a data item based on the provided query parameters.
-func (u *Usecase) GetData(ctx context.Context, obj *model.GetPars) (*model.Main, bool, error) {
+func (u *Usecase) GetData(ctx context.Context, obj *model.GetPars) (*model.DataItems, bool, error) {
 	return u.dataItemsService.Get(ctx, obj)
 }
 
 // ListAll retrieves the all data item based on the provided user id
-func (u *Usecase) ListAll(ctx context.Context, obj *model.ListPars) ([]*model.Main, int64, error) {
+func (u *Usecase) ListAll(ctx context.Context, obj *model.ListPars) ([]*model.DataItems, int64, error) {
 	return u.dataItemsService.List(ctx, obj)
 }
 

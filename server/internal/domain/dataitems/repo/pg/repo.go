@@ -27,12 +27,12 @@ func New(con *pgxpool.Pool) *Repo {
 
 // Get retrieves a single data item based on the provided query parameters.
 // It returns the item if found, a boolean indicating its existence, and any error encountered.
-func (r *Repo) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bool, error) {
+func (r *Repo) Get(ctx context.Context, pars *model.GetPars) (*model.DataItems, bool, error) {
 	if !pars.IsValid() {
 		return nil, false, errs.InvalidInput
 	}
 
-	var result model.Main
+	var result model.DataItems
 
 	queryBuilder := squirrel.Select("*").From("data_items")
 
@@ -69,7 +69,7 @@ func (r *Repo) Get(ctx context.Context, pars *model.GetPars) (*model.Main, bool,
 // List retrieves multiple data items based on the provided query parameters,
 // supporting filters like ID, user ID, type, and timestamps. It returns the list
 // of items, the total count, and any error encountered.
-func (r *Repo) List(ctx context.Context, pars *model.ListPars) ([]*model.Main, int64, error) {
+func (r *Repo) List(ctx context.Context, pars *model.ListPars) ([]*model.DataItems, int64, error) {
 	queryBuilder := squirrel.
 		Select("id", "user_id", "type", "data", "created_at", "updated_at").
 		From("data_items")
@@ -122,9 +122,9 @@ func (r *Repo) List(ctx context.Context, pars *model.ListPars) ([]*model.Main, i
 
 	defer rows.Close()
 
-	var result []*model.Main
+	var result []*model.DataItems
 	for rows.Next() {
-		var data model.Main
+		var data model.DataItems
 		err = rows.Scan(&data.ID, &data.UserID, &data.Type, &data.Data, &data.CreatedAt, &data.UpdatedAt)
 		if err != nil {
 			return nil, 0, err

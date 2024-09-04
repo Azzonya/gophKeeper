@@ -13,9 +13,9 @@ const (
 	BankCardDataType    = "bank_card"
 )
 
-// Main represents the core data entity, storing user-specific data,
+// DataItems represents the core data entity, storing user-specific data,
 // including the type, content, metadata, and associated timestamps.
-type Main struct {
+type DataItems struct {
 	ID        string
 	UserID    string
 	Type      string
