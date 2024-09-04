@@ -57,7 +57,7 @@ func (s *Service) List(ctx context.Context, pars *model.ListPars) ([]*model.Data
 func (s *Service) Create(ctx context.Context, obj *model.Edit) error {
 	tx, err := s.repoDB.BeginTx(ctx)
 	if err != nil {
-		return fmt.Errorf("Begin transaction - %w", err)
+		return fmt.Errorf("begin transaction - %w", err)
 	}
 	defer s.repoDB.HandleTxCompletion(tx, &err)
 
