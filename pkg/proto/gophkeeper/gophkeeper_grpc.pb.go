@@ -31,7 +31,7 @@ const (
 	GophKeeperService_Ping_FullMethodName       = "/gophkeeper.GophKeeperService/Ping"
 )
 
-// GophKeeperServiceClient is the client API for GophKeeperService service.
+// GophKeeperServiceClient is the adaptor API for GophKeeperService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GophKeeperServiceClient interface {
